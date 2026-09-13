@@ -118,9 +118,7 @@ export const OnlineMultiplayerModal: React.FC<OnlineMultiplayerModalProps> = ({
         sound.playBidDing();
         setOpponentJoined(true);
         setWaitingForOpponent(false);
-        setTimeout(() => {
-          handleStartGameLobby();
-        }, 600);
+        
       });
 
       newSocket.on('start-game', ({ roomCode: serverRoomCode, settings: serverSettings }) => {
@@ -232,7 +230,7 @@ export const OnlineMultiplayerModal: React.FC<OnlineMultiplayerModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleStartGameLobby = (serverRoomCode?: string, serverSettings?: any) => {
+ const handleStartGameLobby = (serverRoomCode?: string, serverSettings?: any) => {
     const activeSocket = socket;
     if (!activeSocket) {
       setErrorMsg(language === 'ar' ? 'غير متصل بالخادم' : 'Disconnected from Railway Server - Retrying...');
@@ -240,14 +238,25 @@ export const OnlineMultiplayerModal: React.FC<OnlineMultiplayerModalProps> = ({
     }
     const roomCodeToUse = serverRoomCode || activeRoomCode;
     if (!roomCodeToUse) return;
+
+    // إرسال أمر البدء للسيرفر ليقوم ببثه لكل من في الغرفة
+    if (isHost && !serverRoomCode) {
+      activeSocket.emit('trigger-start-game', { roomCode: roomCodeToUse });
+      return;
+    }
+
     sound.playBidDing();
     
+    const appliedMode = serverSettings?.gameMode || selectedGameMode;
+    const appliedSquadSize = serverSettings?.squadSize || selectedSquadSize;
+    const appliedBudget = serverSettings?.startingCash || selectedBudget;
+
     const settings: GameSettings = {
       mode: 'ONLINE_MULTIPLAYER',
-      gameplayStyle: selectedGameMode === 'Auction / Cash & Visa' ? 'CASH_OR_VISA' : 'CLASSIC_CASH',
+      gameplayStyle: appliedMode === 'Auction / Cash & Visa' ? 'CASH_OR_VISA' : 'CLASSIC_CASH',
       managerCount: 2,
-      squadSize: selectedSquadSize,
-      startingCash: selectedBudget,
+      squadSize: appliedSquadSize,
+      startingCash: appliedBudget,
       turnTimeLimit: 20,
       matchDurationSpeed: 'NORMAL',
       aiDifficulty: 'MEDIUM',
@@ -259,12 +268,12 @@ export const OnlineMultiplayerModal: React.FC<OnlineMultiplayerModalProps> = ({
       arName: isHost ? (username || 'اللاعب المضيف') : 'الخصم',
       avatar: '👑',
       color: '#f59e0b',
-      cash: selectedBudget,
+      cash: appliedBudget,
       visaBalance: 500,
       visaRevealed: true,
       roster: [],
       bench: [],
-      formation: selectedSquadSize === 5 ? '2-2' : '4-3-3',
+      formation: appliedSquadSize === 5 ? '2-2' : '4-3-3',
       cards: { secretBuyout: 1, freezeBidding: 1, redCard: 1, doubleCash: 1, snatchAuction: 1, tacticalLockout: 1, superWildcard: 1, noRiskNoFun: 1, stealCard: 1, overdraftVisa: 1 },
       freeCardsAllowance: 1,
       freeCardsClaimed: 0,
@@ -280,12 +289,12 @@ export const OnlineMultiplayerModal: React.FC<OnlineMultiplayerModalProps> = ({
       arName: !isHost ? (username || 'اللاعب الضيف') : 'الخصم',
       avatar: '⚡',
       color: '#3b82f6',
-      cash: selectedBudget,
+      cash: appliedBudget,
       visaBalance: 500,
       visaRevealed: true,
       roster: [],
       bench: [],
-      formation: selectedSquadSize === 5 ? '2-2' : '4-3-3',
+      formation: appliedSquadSize === 5 ? '2-2' : '4-3-3',
       cards: { secretBuyout: 1, freezeBidding: 1, redCard: 1, doubleCash: 1, snatchAuction: 1, tacticalLockout: 1, superWildcard: 1, noRiskNoFun: 1, stealCard: 1, overdraftVisa: 1 },
       freeCardsAllowance: 1,
       freeCardsClaimed: 0,
@@ -298,7 +307,7 @@ export const OnlineMultiplayerModal: React.FC<OnlineMultiplayerModalProps> = ({
     onStartOnlineMatch(settings, [hostManager, guestManager], isHost, activeSocket, roomCodeToUse);
     onClose();
   };
-
+  };
   if (!isOpen) return null;
 
   return (

@@ -85,8 +85,9 @@ io.on('connection', (socket) => {
   });
 
   // Join Room (Guest)
+ // Join Room (Guest)
   socket.on('join-room', ({ roomCode, username }, callback) => {
-    const cleanCode = roomCode.trim().toUpperCase();
+    const cleanCode = roomCode ? roomCode.trim().toUpperCase() : '';
     const room = rooms.get(cleanCode);
 
     if (!room) {
@@ -105,9 +106,12 @@ io.on('connection', (socket) => {
     socket.join(cleanCode);
     console.log(`[Player Joined] ${username || socket.id} joined room: ${cleanCode}`);
 
-    io.to(room.hostId).emit('opponent-joined', { guestId: socket.id, username });
+    // إرسال إشعار للمضيف مباشرة وللغرفة بالكامل بأن الخصم دخل
+    if (room.hostId) {
+      io.to(room.hostId).emit('opponent-joined', { guestId: socket.id, username });
+    }
     io.to(cleanCode).emit('player-joined', { guestId: socket.id, username, roomCode: cleanCode });
-    io.to(cleanCode).emit('start-game', { roomCode: cleanCode, settings: room.settings });
+
     broadcastRooms();
 
     if (typeof callback === 'function') {
@@ -119,6 +123,14 @@ io.on('connection', (socket) => {
     socket.emit('join-room', data, callback);
   });
 
+  // Trigger match start for all players in the room when host clicks start
+  socket.on('trigger-start-game', ({ roomCode }) => {
+    const cleanCode = roomCode ? roomCode.trim().toUpperCase() : '';
+    const room = rooms.get(cleanCode);
+    
+    // إرسال إشارة البدء لكل المتصلين برقم الغرفة
+    io.to(cleanCode).emit('start-game', { roomCode: cleanCode, settings: room ? room.settings : null });
+  });
   // Authoritative Auction State Synchronization & Reconnection Resync
   socket.on('sync-auction-action', ({ roomCode, actionType, payload }) => {
     const room = rooms.get(roomCode);
