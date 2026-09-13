@@ -1,0 +1,6 @@
+{
+  "name": "X11",
+  "description": "X11 - Cyber Sports Arena, 3D Setup Wizard, Dual Stores & Autonomous AI Engine",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
